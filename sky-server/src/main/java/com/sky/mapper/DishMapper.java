@@ -5,9 +5,12 @@ import com.sky.dto.DishPageQueryDTO;
 import com.sky.entity.Dish;
 import com.sky.enumeration.OperationType;
 import com.sky.vo.DishVO;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import com.github.pagehelper.Page;
+
+import java.util.List;
 
 @Mapper
 public interface DishMapper {
@@ -36,5 +39,15 @@ public interface DishMapper {
      */
     Page<DishVO> pageQuery(DishPageQueryDTO dishPageQueryDTO);
 
+    /**
+     * 根据主键查找菜品
+     * @param ids
+     * @return
+     */
+    @Select("select * from dish where id = #{ids}")
+    Dish getById(Long ids);
 
+
+    @Delete("delete from dish where dish.id = #{id}")
+    void deleteByDishId(Long id);
 }
