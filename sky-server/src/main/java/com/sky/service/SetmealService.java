@@ -7,7 +7,7 @@ import com.sky.result.PageResult;
 public interface SetmealService {
 
 
-
+    void startOrStop(Integer status, Long id);
     /**
      * 套餐分页查询
      *
