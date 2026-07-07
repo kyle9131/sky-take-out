@@ -13,9 +13,9 @@ spring:
       username: ${sky.datasource.username}
       password: ${sky.datasource.password}
   redis:
-    host:${sky.redis.host}
-    port:${sky.redis.port}
-    database:${sky.redis.database}
+    host: ${sky.redis.host}
+    port: ${sky.redis.port}
+    database: ${sky.redis.database}
 
 
 
@@ -44,8 +44,8 @@ sky:
     # 设置前端传递过来的令牌名称
     admin-token-name: token
     user-secret-key: itheima
-      user-ttl:7200000
-      user-token-name:authentication
+    user-ttl: 720000000
+    user-token-name: authentication
     wechat:
       appid: ${sky.wechat.appid}
       secret: ${sky.wechat.secret}
