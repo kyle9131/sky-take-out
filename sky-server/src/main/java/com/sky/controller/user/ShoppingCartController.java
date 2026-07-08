@@ -44,10 +44,18 @@ public class ShoppingCartController {
     @GetMapping("/list")
     @ApiOperation("查看购物车")
     public Result<List<ShoppingCart>> list(){
-
         return Result.success(shoppingCartService.showShopingCart());
+    }
 
-
+    /**
+     * 清空购物车商品
+     * @return
+     */
+    @DeleteMapping("/clean")
+    @ApiOperation("清空购物车商品")
+    public Result<String> clean(){
+        shoppingCartService.cleanShoppingCart();
+        return Result.success();
     }
 
 }
