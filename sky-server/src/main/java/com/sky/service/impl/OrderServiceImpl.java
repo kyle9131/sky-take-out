@@ -1,7 +1,10 @@
 package com.sky.service.impl;
 
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
+import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.dto.OrdersSubmitDTO;
 import com.sky.entity.AddressBook;
 import com.sky.entity.OrderDetail;
@@ -13,8 +16,11 @@ import com.sky.mapper.AddressBookMapper;
 import com.sky.mapper.OrderDetailMapper;
 import com.sky.mapper.OrderMapper;
 import com.sky.mapper.ShoppingCartMapper;
+import com.sky.result.PageResult;
 import com.sky.service.OrderService;
+import com.sky.vo.DishVO;
 import com.sky.vo.OrderSubmitVO;
+import com.sky.vo.OrderVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -41,6 +47,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 用户下单
+     *
      * @param ordersSubmitDTO
      * @return
      */
@@ -48,7 +55,7 @@ public class OrderServiceImpl implements OrderService {
         //先进行异常情况的处理：比如收货地址为空、超出配送范围、购物车为空）
         AddressBook addressBook = addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());
 
-        if(addressBook == null ){
+        if (addressBook == null) {
             throw new AddressBookBusinessException(MessageConstant.ADDRESS_BOOK_IS_NULL);
         }
 
@@ -58,13 +65,13 @@ public class OrderServiceImpl implements OrderService {
 
         //查询当前用户的购物车数据
         List<ShoppingCart> shoppingCartList = shoppingCartMapper.list(shoppingCart);
-        if (shoppingCartList == null || shoppingCartList.size() == 0){
+        if (shoppingCartList == null || shoppingCartList.size() == 0) {
             throw new ShoppingCartBusinessException(MessageConstant.SHOPPING_CART_IS_NULL);
         }
 
         //构造订单数据
         Orders order = new Orders();
-        BeanUtils.copyProperties(ordersSubmitDTO,order);
+        BeanUtils.copyProperties(ordersSubmitDTO, order);
         order.setPhone(addressBook.getPhone());
         order.setAddress(addressBook.getDetail());
         order.setConsignee(addressBook.getConsignee());
@@ -79,9 +86,9 @@ public class OrderServiceImpl implements OrderService {
 
         //订单的明确数据
         List<OrderDetail> orderDetailList = new ArrayList<>();
-        for(ShoppingCart cart : shoppingCartList){
+        for (ShoppingCart cart : shoppingCartList) {
             OrderDetail orderDetail = new OrderDetail();
-            BeanUtils.copyProperties(cart,orderDetail);
+            BeanUtils.copyProperties(cart, orderDetail);
             orderDetail.setOrderId(order.getId());
             orderDetailList.add(orderDetail);
 
@@ -103,4 +110,48 @@ public class OrderServiceImpl implements OrderService {
 
         return orderSubmitVO;
     }
+
+    /**
+     * 分页查询
+     *
+     * @param page
+     * @param pageSize
+     * @param status
+     * @return
+     */
+    public PageResult pageQuery4User(int page, int pageSize, Integer status) {
+
+        //设置分页
+        PageHelper.startPage(page, pageSize);
+
+        OrdersPageQueryDTO ordersPageQueryDTO = new OrdersPageQueryDTO();
+        ordersPageQueryDTO.setUserId(BaseContext.getCurrentId());
+        ordersPageQueryDTO.setStatus(status);
+
+        //分页条件查询
+        Page<Orders> page1 = orderMapper.pageQuery(ordersPageQueryDTO);
+
+        List<OrderVO> list = new ArrayList<>();
+
+        //查询出订单明细，并封装装入OrderVO进行响应
+        if(page1 != null && page1.getTotal() > 0){
+            for(Orders orders : page1){
+                Long orderId = orders.getId();
+
+                //查询订单明细
+                List<OrderDetail> orderDetails = orderDetailMapper.getByOrderId(orderId);
+
+                OrderVO orderVO = new OrderVO();
+                BeanUtils.copyProperties(orders,orderVO);
+                orderVO.setOrderDetailList(orderDetails);
+
+                list.add(orderVO);
+
+            }
+        }
+
+        return  new PageResult(page1.getTotal(),list);
+    }
+
 }
+

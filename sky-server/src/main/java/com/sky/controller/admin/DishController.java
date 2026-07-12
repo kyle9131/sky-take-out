@@ -125,10 +125,8 @@ public class DishController {
     public  Result update(@RequestBody DishDTO dishDTO){
         log.info("修改菜品：{}",dishDTO);
         dishService.updateWithFlavor(dishDTO);
-
         //将所有菜品的缓存数据清除掉，所有以dish_开头的
         cleanCache("dish_*");
-
         return Result.success();
 
     }
