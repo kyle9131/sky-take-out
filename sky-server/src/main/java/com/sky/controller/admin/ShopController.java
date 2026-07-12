@@ -33,7 +33,7 @@ public class ShopController {
     }
 
     /**
-     *获取店铺营业状态
+     * 获取店铺营业状态
      * @return
      */
     @GetMapping("/status")
