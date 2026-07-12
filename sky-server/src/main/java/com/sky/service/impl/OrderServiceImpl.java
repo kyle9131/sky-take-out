@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 /**
@@ -202,6 +203,30 @@ public class OrderServiceImpl implements OrderService {
         //update更新数据库
         orderMapper.update(orders);
 
+    }
+
+    /**
+     * 用户再来一单
+     * @param id
+     */
+    public void repetition(Long id) {
+        //当前用户id
+        Long userId = BaseContext.getCurrentId();
+
+        //根据id查询订单明细
+        List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(id);
+
+        //将里面每个明细转换成购物车对象
+        List<ShoppingCart> shoppingCartList = orderDetailList.stream().map(x -> {
+            ShoppingCart shoppingCart = new ShoppingCart();
+            BeanUtils.copyProperties(x, shoppingCart, "id");  // 忽略id
+            shoppingCart.setUserId(userId);
+            shoppingCart.setCreateTime(LocalDateTime.now());
+            return shoppingCart;
+        }).collect(Collectors.toList());
+
+        // 3. 批量插入购物车
+        shoppingCartMapper.insertBatch(shoppingCartList);
 
     }
 
