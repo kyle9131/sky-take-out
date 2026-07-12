@@ -11,6 +11,7 @@ import com.sky.entity.OrderDetail;
 import com.sky.entity.Orders;
 import com.sky.entity.ShoppingCart;
 import com.sky.exception.AddressBookBusinessException;
+import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
 import com.sky.mapper.AddressBookMapper;
 import com.sky.mapper.OrderDetailMapper;
@@ -171,6 +172,36 @@ public class OrderServiceImpl implements OrderService {
         orderVO.setOrderDetailList(orderDetailList);
 
         return orderVO;
+
+    }
+
+    /**
+     * 取消用户订单
+     *
+     * @param id
+     */
+    public void userCancelById(Long id) {
+        //根据用户id查询订单 看是否存在
+        Orders ordersDB = orderMapper.getById(id);
+        if(ordersDB == null){
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        //检验订单的状态，只有待付款和待接单能直接取消
+        if(ordersDB.getStatus() > Orders.TO_BE_CONFIRMED){
+            throw  new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        //构造一个新的orders对象，只set需要更改的字段
+        Orders orders = new Orders();
+        orders.setId(ordersDB.getId());
+        orders.setStatus(Orders.CANCELLED);
+        orders.setCancelReason("用户取消订单支付");
+        orders.setCancelTime(LocalDateTime.now());
+
+        //update更新数据库
+        orderMapper.update(orders);
+
 
     }
 
