@@ -349,5 +349,22 @@ public class OrderServiceImpl implements OrderService {
         orderMapper.update(orders);
     }
 
+    /**
+     * 商家订单搜索
+     * @param ordersPageQueryDTO
+     * @return
+     */
+    public PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
+        //分页
+        PageHelper.startPage(ordersPageQueryDTO.getPage(),ordersPageQueryDTO.getPageSize());
+
+        //调用同一个pageQuery（不塞userId，查所有用户的订单）
+        Page<Orders> page = orderMapper.pageQuery(ordersPageQueryDTO);
+
+        //封装返回
+        return new PageResult(page.getTotal(),page.getResult());
+
+    }
+
 }
 

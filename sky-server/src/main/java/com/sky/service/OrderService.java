@@ -81,5 +81,12 @@ public interface OrderService {
     void delivery(Long id);
 
 
+    /**
+     * 商家订单搜索
+     * @param ordersPageQueryDTO
+     * @return
+     */
+    PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO);
+
 
 }
