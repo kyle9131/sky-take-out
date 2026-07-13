@@ -4,8 +4,7 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
-import com.sky.dto.OrdersPageQueryDTO;
-import com.sky.dto.OrdersSubmitDTO;
+import com.sky.dto.*;
 import com.sky.entity.AddressBook;
 import com.sky.entity.OrderDetail;
 import com.sky.entity.Orders;
@@ -18,24 +17,28 @@ import com.sky.mapper.OrderDetailMapper;
 import com.sky.mapper.OrderMapper;
 import com.sky.mapper.ShoppingCartMapper;
 import com.sky.result.PageResult;
+import com.sky.result.Result;
 import com.sky.service.OrderService;
 import com.sky.vo.DishVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import org.springframework.web.bind.annotation.PathVariable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 
+
 /**
  * 订单
  */
 @Service
+@Slf4j
 public class OrderServiceImpl implements OrderService {
 
     @Autowired
@@ -228,6 +231,122 @@ public class OrderServiceImpl implements OrderService {
         // 3. 批量插入购物车
         shoppingCartMapper.insertBatch(shoppingCartList);
 
+    }
+
+    /**
+     * 商家接单
+     *
+     * @param ordersConfirmDTO
+     */
+    public void confirm(OrdersConfirmDTO ordersConfirmDTO) {
+        Orders orders = Orders.builder()
+                .id(ordersConfirmDTO.getId())
+                .status(Orders.CONFIRMED)
+                .build();
+        orderMapper.update(orders);
+
+    }
+
+    /**
+     * 商家完成订单
+     * @param id
+     */
+    public void complete(Long id) {
+        //校验状态：只有在"派送中"的订单才能完成
+        Orders ordersDB = orderMapper.getById(id);
+
+        if(ordersDB == null || !ordersDB.getStatus().equals(Orders.DELIVERY_IN_PROGRESS)){
+            throw  new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        Orders orders = Orders.builder()
+                .id(ordersDB.getId())
+                .status(Orders.COMPLETED)
+                .deliveryTime(LocalDateTime.now())
+                .build();
+
+        orderMapper.update(orders);
+
+    }
+
+    /**
+     * 商家拒绝订单
+     * @param ordersRejectionDTO
+     */
+    public void rejection(OrdersRejectionDTO ordersRejectionDTO) {
+        //查询出订单
+        Orders ordersDB = orderMapper.getById(ordersRejectionDTO.getId());
+
+        //校验状态：订单只有存在 且状态为"待接单"才能进行拒单
+        if(ordersDB == null || !ordersDB.getStatus().equals(Orders.PAID)){
+            throw  new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+
+        }
+
+        //如果用户已付款，模拟退款，并且把支付状态变更为已退款
+        if(ordersDB.getPayStatus().equals(Orders.PENDING_PAYMENT)){
+            //本地模拟更改状态
+            log.info("模拟退款：订单{}已经退款",ordersDB.getId());
+
+        }
+
+        //构造更新对象：状态更改为已取消，填写拒单原因、退款状态、取消时间
+        Orders orders = Orders.builder()
+                .id(ordersDB.getId())
+                .status(Orders.CANCELLED)
+                .rejectionReason(ordersRejectionDTO.getRejectionReason())
+                .payStatus(Orders.REFUND)
+                .cancelTime(LocalDateTime.now())
+                .build();
+
+        orderMapper.update(orders);
+
+    }
+
+    /**
+     * 商家取消订单
+     *
+     * @param ordersCancelDTO
+     */
+    public void cancel(OrdersCancelDTO ordersCancelDTO) {
+        //查订单
+        Orders ordersDB = orderMapper.getById(ordersCancelDTO.getId());
+
+        //如果用户已付款，则模拟退款
+        if(ordersDB.getPayStatus().equals(Orders.PAID)){
+            log.info("模拟退款，订单{}已经退款",ordersDB.getId());
+        }
+
+        //构造更新对象：状态已取消、填取消原因、退款状态、取消时间
+        Orders orders = Orders.builder()
+                .id(ordersCancelDTO.getId())
+                .status(Orders.CANCELLED)
+                .cancelReason(ordersCancelDTO.getCancelReason())
+                .payStatus(Orders.REFUND)
+                .cancelTime(LocalDateTime.now())
+                .build();
+
+        orderMapper.update(orders);
+    }
+
+
+    /**
+     * 商家派送订单
+     *
+     * @param id
+     */
+    public void delivery(Long id) {
+        // 校验：只有"已接单"状态的订单才能派送
+        Orders ordersDB = orderMapper.getById(id);
+        if (ordersDB == null || !ordersDB.getStatus().equals(Orders.CONFIRMED)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        // 构造：状态改成派送中
+        Orders orders = Orders.builder()
+                .id(ordersDB.getId())
+                .status(Orders.DELIVERY_IN_PROGRESS)
+                .build();
+        orderMapper.update(orders);
     }
 
 }
